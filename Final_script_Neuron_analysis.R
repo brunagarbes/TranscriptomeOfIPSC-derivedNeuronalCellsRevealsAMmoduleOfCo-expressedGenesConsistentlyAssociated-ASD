@@ -22,7 +22,6 @@ library(biomaRt)
 
 ## Load input data #############################################
 #load FPKM table to select genes in count table by FPKM>1
-setwd("C:/Users/Karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files")
 geneRPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
 rownames(geneRPKM)=geneRPKM[,1]
 geneRPKM=geneRPKM[,c(41:63)]
@@ -32,7 +31,6 @@ HKgenes_full <- read.csv ("HK_full_gene_list_ensembl_biomart.csv")
 
 
 #load countdata and sample data
-setwd("C:/Users/Karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files/Resultados_finais/Neuronios")
 counts=read.table("countdata_20M_neurons.txt", header=TRUE)
 sampleInfo=read.delim("samplesheet_neurons.txt", sep="\t", header=TRUE)
 
