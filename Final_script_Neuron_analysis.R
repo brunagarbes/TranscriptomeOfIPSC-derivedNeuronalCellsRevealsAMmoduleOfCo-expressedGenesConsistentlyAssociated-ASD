@@ -1,4 +1,12 @@
 ####Neuron Analysis - FINAL SCRIPT ###########
+
+# Display the current working directory
+getwd();
+# If necessary, change the path below to the directory where the data files are stored.
+# "." means current directory. On Windows use a forward slash / instead of the usual \.
+workingDir = ".";
+setwd(workingDir);
+
 ## Load required packages ##########################################
 library(edgeR)
 library(RUVSeq)
@@ -7,11 +15,12 @@ library(WGCNA)
 library(calibrate)
 library(DESeq2)
 library(pheatmap)
-library (RColorBrewer)
-library (dplyr)
-library (biomaRt)
+library(RColorBrewer)
+library(dplyr)
+library(biomaRt)
+# you might have to download additional packages depending of your currently R library
 
-## Load inputs/data #############################################
+## Load input data #############################################
 #load FPKM table to select genes in count table by FPKM>1
 setwd("C:/Users/Karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files")
 geneRPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
@@ -118,19 +127,19 @@ infoData=rownames(ncvsd)
 #Run WGCNA#
 # run soft pick threshold
 # Test a series of powers to which co-expression similarity is raised to calculate adjacency
-powers=c(c(1:10), seq(from = 12, to = 20, by = 2)) 
+powers=c(c(1:10), seq(from = 12, to = 20, by = 2))
 sft = pickSoftThreshold(dat, powerVector = powers, verbose = 5, blockSize = 20000, networkType = "signed") # Signed gives an indication of positive vs negative correlations
 #Plot the results
 sizeGrWindow(9, 5)
 par(mfrow = c(1,2))
 cex1 = 0.9 #what is that?
-# Fit to scale-free topology 
-plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)", 
-     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence")); 
-text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red"); 
+# Fit to scale-free topology
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
 abline(h=c(0.8, 0.5), col="red")
 # Mean connectivity
-plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)", 
+plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
      ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
 text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
 pdf(file="WGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
@@ -138,17 +147,17 @@ dev.off()
 
 #construction of the network
 # Chosen soft threshold in this case is 12; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
-net=blockwiseModules(dat, power=16, numericLabels=TRUE, networkType = "signed", 
-                     minModuleSize=150, mergeCutHeight=0.15, saveTOMs=FALSE, verbose=6,minKMEtoStay = 0.5, 
+net=blockwiseModules(dat, power=16, numericLabels=TRUE, networkType = "signed",
+                     minModuleSize=150, mergeCutHeight=0.15, saveTOMs=FALSE, verbose=6,minKMEtoStay = 0.5,
                      nThreads=24, maxBlockSize=20000, checkMissingData=FALSE)
 
 
 ## Labelling the modules with a colour tag
-modules=as.data.frame(table(net$colors)); colnames(modules)=c("Label", "N") 
-modules$Label=paste("M", modules$Label, sep=""); 
-modules$Color=c("grey",labels2colors(modules$Label[-1])) 
-moduleLabel=paste("M",net$colors, sep=""); 
-moduleColor=modules$Color[match(moduleLabel, modules$Label)] 
+modules=as.data.frame(table(net$colors)); colnames(modules)=c("Label", "N")
+modules$Label=paste("M", modules$Label, sep="");
+modules$Color=c("grey",labels2colors(modules$Label[-1]))
+moduleLabel=paste("M",net$colors, sep="");
+moduleColor=modules$Color[match(moduleLabel, modules$Label)]
 
 ####dendogram modules
 sizeGrWindow(12, 9)
@@ -168,15 +177,15 @@ colnames(kme)[1]="Symbol"
 
 #Re-assign genes to modules by kME. Any not passing the criteria of correlation pvalue <0.05, and kME>0.5, will be moved to a junk module
 kmeInfoCols=c(1:3)
-kmedata=kme[,-kmeInfoCols]; 
-pvalBH=kmedata; pvalBH[,]=NA 
+kmedata=kme[,-kmeInfoCols];
+pvalBH=kmedata; pvalBH[,]=NA
 for (j in c(1:ncol(pvalBH)))
 {
   p=mt.rawp2adjp(corPvalueStudent(kmedata[,j], nSamples=19), proc="BH")
   pvalBH[,j]=p$adjp[order(p$index),2]
 }
 
-kme$newModule="NA" 
+kme$newModule="NA"
 for (j in c(1:nrow(kmedata)) )
 {
   if (j==1) print("Working on genes 1:10000"); if(j==10000) print(paste("Working on genes 10000:", nrow(kmedata)))
@@ -185,25 +194,25 @@ for (j in c(1:nrow(kmedata)) )
 }
 
 ## Assign genes not associated to any module to M0
-kme$newModule[which(kme$newModule%in%"NA")]="M0" 
+kme$newModule[which(kme$newModule%in%"NA")]="M0"
 
 ## Replacing the old moduleLabel and moduleColor columns with the updated newModule and newColor columns respectively
-kme$newColor=kme$moduleColor[match(kme$newModule, kme$moduleLabel)] 
-kme$moduleLabel=kme$newModule; kme$moduleColor=kme$newColor 
-kme=kme[,-grep("newModule", colnames(kme))];kme=kme[,-grep("newColor", colnames(kme))] 
+kme$newColor=kme$moduleColor[match(kme$newModule, kme$moduleLabel)]
+kme$moduleLabel=kme$newModule; kme$moduleColor=kme$newColor
+kme=kme[,-grep("newModule", colnames(kme))];kme=kme[,-grep("newColor", colnames(kme))]
 
-#Saving kMEs 
-mod=modules$Label[-1] 
-kmeTable=kme[,kmeInfoCols]; 
+#Saving kMEs
+mod=modules$Label[-1]
+kmeTable=kme[,kmeInfoCols];
 for(j in c(1:length(mod)))
 {
-  kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")                                                                             
+  kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")
   kmeTable=cbind(kmeTable, pvalBH[,match(mod[j],colnames(pvalBH))]);colnames(kmeTable)[ncol(kmeTable)]=paste("pvalBH", mod[j], sep="_")
 }
-# Renaming the rBEE rows, which are now NA    
+# Renaming the rBEE rows, which are now NA
 write.csv(kmeTable, "kME_Neuron_nDEGs_HKgenes_p0.4_k4.csv", row.names=FALSE)
 
-#Saving Module Eigengenes 
+#Saving Module Eigengenes
 me<-data.frame(rownames(dat), net$MEs) # Sample names bound to module eigengenes
 colnames(me)[-1]=gsub("ME", "M", colnames(me)[-1])
 colnames(me)[1]="Sample"
@@ -216,12 +225,12 @@ colors[grep("_P_", me$Sample)]="red"
 pdf("moduleBarplots_Neuron_nDEGs_HKgenes_p0.4_k4.pdf", height=5, width=15)
 
 mod=paste("M", c(0:(ncol(me)-2)), sep="")
-for(m in mod) 
-{ 
+for(m in mod)
+{
   j=match(m, colnames(me))
   col=kme$moduleColor[match(m, kme$moduleLabel)]
   barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
-  
+
 }
 dev.off()
 
@@ -264,7 +273,7 @@ dev.off()
 pvalue = moduleTraitPvalue [,3]
 n = c(15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15)
 bf = p.adjust(0.04, method = "bonferroni", n = 25)
-bf           
+bf
 
 ####overlapping of modules with external data####
 #converting ensembl id to gene symbol
@@ -275,7 +284,7 @@ geneR <-if (interactive()) {
   mart <- useDataset("hsapiens_gene_ensembl",mart)
   getBM(attributes = c("hgnc_symbol", "ensembl_gene_id"),
         filters    = "ensembl_gene_id",
-        values     = ensembl , 
+        values     = ensembl ,
         mart       = mart)
 }
 
@@ -289,30 +298,30 @@ geneR <- geneR [,1]
 data("BrainLists")
 data ("BrainRegionMarkers")
 userListEnrichment(
-  geneR, labelR, 
+  geneR, labelR,
   fnIn = NULL,
-  nameOut = "enrichment_brainLists_Neuron_nDEGs_HKgenes_p0.4_k4.csv", 
-  useBrainLists = TRUE, omitCategories = "grey", 
-  useBrainRegionMarkers = TRUE) 
+  nameOut = "enrichment_brainLists_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
+  useBrainLists = TRUE, omitCategories = "grey",
+  useBrainRegionMarkers = TRUE)
 
 userListEnrichment(
-  geneR, labelR, 
+  geneR, labelR,
   fnIn = NULL,
-  nameOut = "enrichment_bloodLists_Neuron_nDEGs_HKgenes_p0.4_k4.csv", 
-  useBloodAtlases = TRUE, omitCategories = "grey") 
+  nameOut = "enrichment_bloodLists_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
+  useBloodAtlases = TRUE, omitCategories = "grey")
 
 
 mod_mari <- read.csv ("analises_50/modules_Mariani.csv")
 
 userListEnrichment(
-  geneR, labelR, 
+  geneR, labelR,
   fnIn = ("C:/Users/karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files/analises_50/modules_Mariani.csv"),
   nameOut = "enrichment_mariani_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
-  omitCategories = "grey") 
+  omitCategories = "grey")
 
 
 userListEnrichment(
-  geneR, labelR, 
+  geneR, labelR,
   fnIn = ("C:/Users/karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files/modules_Gupta.csv"),
   nameOut = "enrichment_Gupta_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
-  omitCategories = "grey") 
+  omitCategories = "grey")
