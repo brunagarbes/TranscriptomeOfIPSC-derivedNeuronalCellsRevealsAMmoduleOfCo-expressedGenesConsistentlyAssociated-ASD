@@ -1,4 +1,4 @@
-####Neuron Analysis - FINAL SCRIPT ###########
+###Neuron Analysis - FINAL SCRIPT ###
 
 # Display the current working directory
 getwd();
@@ -18,6 +18,8 @@ library(pheatmap)
 library(RColorBrewer)
 library(dplyr)
 library(biomaRt)
+library(multtest)
+library(gplots)
 #You might have to download additional packages depending on your currently R library
 
 #load input data
@@ -38,7 +40,6 @@ sampleInfo=read.delim("samplesheet_neurons.txt", sep="\t", header=TRUE)
 countData50 <- counts [,c(1,2,5:7,9:15,17:23)]
 sampleData50 <- sampleInfo [c(1,2,5:7,9:15,17:23),]
 geneRPKM50 <- geneRPKM [,c(1,2,5:7,9:15,17:23)]
-
 filtered <- which(rowSums(geneRPKM50 > 1) >= 9)
 RPKM <- geneRPKM50[filtered,]
 countData50 =subset (countData50, rownames(countData50) %in% rownames(RPKM))
@@ -203,6 +204,7 @@ for(j in c(1:length(mod)))
   kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")
   kmeTable=cbind(kmeTable, pvalBH[,match(mod[j],colnames(pvalBH))]);colnames(kmeTable)[ncol(kmeTable)]=paste("pvalBH", mod[j], sep="_")
 }
+
 #renaming the rBEE rows, which are now NA
 write.csv(kmeTable, "kME_Neuron_nDEGs_HKgenes_p0.4_k4.csv", row.names=FALSE)
 
@@ -215,7 +217,6 @@ write.csv(me, "ME_Neuron_nDEGs_HKgenes_p0.4_k4.csv", row.names=FALSE)
 #plotting module eigengene values
 colors=rep("turquoise", nrow(me) )
 colors[grep("_P_", me$Sample)]="red"
-
 pdf("moduleBarplots_Neuron_nDEGs_HKgenes_p0.4_k4.pdf", height=5, width=15)
 
 mod=paste("M", c(0:(ncol(me)-2)), sep="")
@@ -224,7 +225,6 @@ for(m in mod)
   j=match(m, colnames(me))
   col=kme$moduleColor[match(m, kme$moduleLabel)]
   barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
-
 }
 dev.off()
 
@@ -241,14 +241,15 @@ MEs0 = moduleEigengenes(dat, moduleColor)$eigengenes
 MEs = orderMEs(MEs0)
 moduleTraitCor = cor(MEs, SampleInfo, use = "p");
 moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
-
 sizeGrWindow(10,6)
 pdf("Module-TRait_relationship_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
+
 #will display correlations and their p-values
 textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
                    signif(moduleTraitPvalue, 2), ")", sep = "");
 dim(textMatrix) = dim(moduleTraitCor)
 par(mar = c(6, 8.5, 3, 3));
+
 #display the correlation values within a heatmap plot
 labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = names(SampleInfo),
@@ -267,6 +268,7 @@ pvalue = moduleTraitPvalue [,3]
 n = c(15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15)
 bf = p.adjust(0.04, method = "bonferroni", n = 25)
 bf
+
 
 ####overlapping of modules with external data####
 #converting ensembl id to gene symbol
@@ -289,6 +291,7 @@ labelR <- labelR [,3]
 geneR <- geneR [,1]
 data("BrainLists")
 data ("BrainRegionMarkers")
+
 userListEnrichment(
   geneR, labelR,
   fnIn = NULL,
@@ -301,8 +304,6 @@ userListEnrichment(
   fnIn = NULL,
   nameOut = "enrichment_bloodLists_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
   useBloodAtlases = TRUE, omitCategories = "grey")
-
-mod_mari <- read.csv ("analises_50/modules_Mariani.csv")
 
 userListEnrichment(
   geneR, labelR,
