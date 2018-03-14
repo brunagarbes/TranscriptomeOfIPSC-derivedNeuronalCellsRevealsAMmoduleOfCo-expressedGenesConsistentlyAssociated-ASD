@@ -7,7 +7,7 @@ getwd();
 workingDir = ".";
 setwd(workingDir);
 
-## Load required packages ##########################################
+#load required packages ###
 library(edgeR)
 library(RUVSeq)
 library(EDASeq)
@@ -30,6 +30,7 @@ geneRPKM=geneRPKM[,c(41:63)]
 
 #load HKgenes lists
 HKgenes_full <- read.csv ("HK_full_gene_list_ensembl_biomart.csv")
+#this data comes from Eisenberg etal (2013)
 
 #load countdata and sample data
 counts=read.table("countdata_20M_neurons.txt", header=TRUE)
@@ -141,7 +142,7 @@ pdf(file="WGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
 dev.off()
 
 #construction of the network
-# Chosen soft threshold in this case is 12; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
+# Chosen soft threshold in this case is 16; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
 net=blockwiseModules(dat, power=16, numericLabels=TRUE, networkType = "signed",
                      minModuleSize=150, mergeCutHeight=0.15, saveTOMs=FALSE, verbose=6,minKMEtoStay = 0.5,
                      nThreads=24, maxBlockSize=20000, checkMissingData=FALSE)
@@ -153,16 +154,6 @@ modules$Label=paste("M", modules$Label, sep="");
 modules$Color=c("grey",labels2colors(modules$Label[-1]))
 moduleLabel=paste("M",net$colors, sep="");
 moduleColor=modules$Color[match(moduleLabel, modules$Label)]
-
-#dendogram modules
-sizeGrWindow(12, 9)
-#convert labels to colors for plotting
-mergedColors = labels2colors(net$colors)
-#plot the dendrogram and the module colors underneath
-plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
-                    "Module colors",
-                    dendroLabels = FALSE, hang = 0.03,
-                    addGuide = TRUE, guideHang = 0.05)
 
 #get kMe table
 #calculating kMEs
@@ -264,11 +255,6 @@ labeledHeatmap(Matrix = moduleTraitCor,
                main = paste("Module-trait relationships"))
 dev.off()
 
-pvalue = moduleTraitPvalue [,3]
-n = c(15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15)
-bf = p.adjust(0.04, method = "bonferroni", n = 25)
-bf
-
 
 ####overlapping of modules with external data####
 #converting ensembl id to gene symbol
@@ -307,7 +293,7 @@ userListEnrichment(
 
 userListEnrichment(
   geneR, labelR,
-  fnIn = ("C:/Users/karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files/analises_50/modules_Mariani.csv"),
+  fnIn = ("modules_Mariani.csv"),
   nameOut = "enrichment_mariani_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
   omitCategories = "grey")
 
