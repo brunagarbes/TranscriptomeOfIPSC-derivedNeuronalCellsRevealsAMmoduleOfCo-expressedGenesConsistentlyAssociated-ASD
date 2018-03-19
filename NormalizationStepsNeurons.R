@@ -18,6 +18,9 @@ library(pheatmap)
 library (RColorBrewer)
 #You might have to download additional packages depending on your currently R library
 
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE);
+
 #loading input data
 
 geneFPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
@@ -69,7 +72,7 @@ nDEGs_HKgenes50 <- intersect(nDEGs_deseq50,HKgenes50)
 m=match(colnames(countData50), sampleData50$label)
 
 
-#RUV
+#RUVSeq
 
 #before normalization
 #PCA and hierarchical cluster graphs before normalization
@@ -93,8 +96,6 @@ pheatmap(sampleDistMatrix,
 dev.off()
 
 
-#RUVseq analysis
-
 controlGenes <- nDEGs_HKgenes50
 pdf("contrGenes_nDEGs_HKgenes_neurons50.pdf")
 
@@ -106,7 +107,7 @@ for( i in 1:4){
  boxplot(log2(N))
  title("Boxplot Neuron Samples, 1<= K <=4")
  pca=princomp(cor(N, method="s"))
- plot(pca$loadings[,1], pca$loadings[,2],xlab="PC1", ylab="PC2", main="RUV Normalization PCA grph, neuron proportions", pch=20, col=labels2colors(sampleData50$Neur_prop_group[m]))
+ plot(pca$loadings[,1], pca$loadings[,2],xlab="PC1", ylab="PC2", main="RUV Normalization PCA graphs considering neuron proportions", pch=20, col=labels2colors(sampleData50$Neur_prop_group[m]))
  dds <- DESeqDataSetFromMatrix(countData = N, colData = sampleData50, design = ~ condition)
  vsd <- varianceStabilizingTransformation(dds)
  plotPCA(vsd, intgroup=c("Neur_prop_group"))
@@ -122,7 +123,7 @@ for( i in 1:4){
 }
 dev.off()
 
-#RODAR WGCNA AQUI POIS ELE TAMBEM FOI USADO NA ESCOLHA DO MELHOR CONJUNTO DE DADOS
+
 ###DESeq2 - Differential expression analysis###
 #create deseq object
 dds <- DESeqDataSetFromMatrix(countData = countData50, colData = sampleData50, design = ~ condition) #so preciso criar o dds com o countdata

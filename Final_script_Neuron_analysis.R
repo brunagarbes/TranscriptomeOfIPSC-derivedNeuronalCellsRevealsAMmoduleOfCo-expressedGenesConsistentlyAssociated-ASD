@@ -8,7 +8,6 @@ workingDir = ".";
 setwd(workingDir);
 
 #load required packages ###
-library(edgeR)
 library(RUVSeq)
 library(EDASeq)
 library(WGCNA)
