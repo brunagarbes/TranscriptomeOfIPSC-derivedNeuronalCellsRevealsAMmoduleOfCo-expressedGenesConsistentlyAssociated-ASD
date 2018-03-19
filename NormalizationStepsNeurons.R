@@ -49,8 +49,7 @@ filtered <- which(rowSums(geneFPKM50 > 1) >= 9)
 FPKM <- geneFPKM50[filtered,]
 countData50 =subset (countData50, rownames(countData50) %in% rownames(FPKM))
 
-#first differential expression analysis
-#differential expression with DESeq2
+#first differential expression analysis with DESeq2
 #we generated a gene list which is known to be no differentially expressed (pvalue>=0.4)
 #so we can built up a housekeeping gene list for RUVseq analysis
 
@@ -138,7 +137,7 @@ ncvsd <- as.data.frame(ncvsd)
 variance <- apply(ncvsd,1,sd)/apply(ncvsd,1,mean)
 hist(variance)
 
-keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.0125)
+keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.03)
 #we calculated the variance over the mean and tried different cuttoffs to see how many genes were still retained
 ncvsd=ncvsd[keep,]
 
@@ -155,3 +154,16 @@ sft = pickSoftThreshold(dat, powerVector = powers, verbose = 5, blockSize = 2000
 sizeGrWindow(9, 5)
 par(mfrow = c(1,2))
 cex1 = 0.9
+
+pdf(file="WGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
+#fit to scale-free topology
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
+abline(h=c(0.8, 0.5), col="red")
+
+#mean connectivity
+plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
+     ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
+dev.off()
