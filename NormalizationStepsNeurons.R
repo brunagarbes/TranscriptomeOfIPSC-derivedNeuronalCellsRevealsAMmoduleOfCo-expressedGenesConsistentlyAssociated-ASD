@@ -96,7 +96,7 @@ dev.off()
 #RUVseq analysis
 
 controlGenes <- nDEGs_HKgenes50
-pdf("TESTANDO_LACO_contrGenes_nDEGs_HKgenes_neurons50.pdf")
+pdf("contrGenes_nDEGs_HKgenes_neurons50.pdf")
 
 for( i in 1:4){
 
@@ -123,3 +123,34 @@ for( i in 1:4){
 dev.off()
 
 #RODAR WGCNA AQUI POIS ELE TAMBEM FOI USADO NA ESCOLHA DO MELHOR CONJUNTO DE DADOS
+###DESeq2 - Differential expression analysis###
+#create deseq object
+dds <- DESeqDataSetFromMatrix(countData = countData50, colData = sampleData50, design = ~ condition) #so preciso criar o dds com o countdata
+
+#to extract the log-transformed counts
+vsd<- varianceStabilizingTransformation(dds)
+ncvsd <- assay (vsd)
+ncvsd <- as.data.frame(ncvsd)
+
+###WGCNA analysis###
+#check for variance over the mean and possibliy remove some genes
+variance <- apply(ncvsd,1,sd)/apply(ncvsd,1,mean)
+hist(variance)
+
+keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.0125)
+#we calculated the variance over the mean and tried different cuttoffs to see how many genes were still retained
+ncvsd=ncvsd[keep,]
+
+#transpose the table
+dat=t(ncvsd)
+infoData=rownames(ncvsd)
+
+#run WGCNA#
+#run soft pick threshold
+#test a series of powers to which co-expression similarity is raised to calculate adjacency
+powers=c(c(1:10), seq(from = 12, to = 20, by = 2))
+sft = pickSoftThreshold(dat, powerVector = powers, verbose = 5, blockSize = 20000, networkType = "signed") # Signed gives an indication of positive vs negative correlations
+#plot the results
+sizeGrWindow(9, 5)
+par(mfrow = c(1,2))
+cex1 = 0.9

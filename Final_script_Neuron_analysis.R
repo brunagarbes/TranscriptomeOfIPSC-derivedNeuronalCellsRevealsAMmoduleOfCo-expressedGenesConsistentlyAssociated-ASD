@@ -22,6 +22,9 @@ library(multtest)
 library(gplots)
 #You might have to download additional packages depending on your currently R library
 
+# The following setting is important, do not omit
+options(stringsAsFactors = FALSE);
+
 #load input data
 #load FPKM table to select genes in count table by FPKM>1
 geneRPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
@@ -299,6 +302,6 @@ userListEnrichment(
 
 userListEnrichment(
   geneR, labelR,
-  fnIn = ("C:/Users/karin/Dropbox/Arquivos_genomica_autistas/RNAseq/RNAseq_files/modules_Gupta.csv"),
+  fnIn = ("modules_Gupta.csv"),
   nameOut = "enrichment_Gupta_Neuron_nDEGs_HKgenes_p0.4_k4.csv",
   omitCategories = "grey")
