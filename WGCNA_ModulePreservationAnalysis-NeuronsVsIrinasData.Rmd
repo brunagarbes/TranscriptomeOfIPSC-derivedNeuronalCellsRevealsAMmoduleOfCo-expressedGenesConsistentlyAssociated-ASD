@@ -1,105 +1,122 @@
 ---
-title: "brainSpan_NPCs_ModulePreservationAnalysis"
+title: "ModulePreservationAnalysis-NeuronsVsIrinasData"
 author: "Bruna Garbes"
-date: "16 de fevereiro de 2018"
-output: html_document
+date: "13 de dezembro de 2017"
+output:
+  word_document: default
+  html_document: default
 ---
+#Module preservation analysis Neurons VS Irina's data
 
-
-
-```{r}
-library(stringr)
+```{r message=FALSE, eval=FALSE} 
+# Display the current working directory
+getwd();
+# If necessary, change the path below to the directory where the data files are stored.
+# "." means current directory. On Windows use a forward slash / instead of the usual \.
+workingDir = ".";
+setwd(workingDir);
+# Load the package
+library(WGCNA);
+library(plyr);
 library(dplyr);
 library(readr);
 library(magrittr);
-library(readxl);
-library(WGCNA);
 library(data.table);
-library(plyr);
+library(readxl);
 # The following setting is important, do not omit.
 options(stringsAsFactors = FALSE);
+
 ```
 
-```{r}
-brainSpanNeuron <- read_delim("D:/estagio/WGCNA_analysis/brainSpan/brainSpanData_Neuron_final.txt", 
-    "\t", escape_double = FALSE, trim_ws = TRUE);
-```
-
-```{r}
-brainSpanNeuronI=   select(brainSpanNeuron, X1, starts_with("8pcw"),starts_with("9pcw"));
-brainSpanNeuronI=brainSpanNeuronI[4:12350,]
-```
-
-```{r}
-brainSpanNeuronII=  select(brainSpanNeuron, X1, starts_with("12pcw"), starts_with("13pcw"));
-brainSpanNeuronII=brainSpanNeuronII[4:12350,]
-```
-
-```{r}
-brainSpanNeuronIII= select(brainSpanNeuron, X1, starts_with("16pcw"), starts_with("17pcw"));
-brainSpanNeuronIII=brainSpanNeuronIII[4:12350,]
-```
-
-```{r}
-write.csv(brainSpanNeuronIII, "brainSpanNeuronIII.txt", row.names = F)
-brainSpanNeuronIII <- read_csv("brainSpanNeuronIII.txt")
-
-keep=as.data.frame(brainSpanNeuronIII)
-rownames(keep)=keep[,1]
-keep=keep[2:68]
-keep2=which(apply(keep,1,sd)/apply(keep,1,mean)>= 0.2) #lembrar que pra brainSpanNeuronI usei 0.3!
-keep=keep[keep2,]
-#hist(keep)
-#keep3= mutate(keep, X1=rownames(keep))
-brainSpanNeuronIII=keep
-
-#Reading brainSpanNeuronI data
-dataBrainSpanNeuronIII = brainSpanNeuronIII
-datExprBrainSpanNeuronIII = t(dataBrainSpanNeuronIII)
-setLabels = c("Neuron", "brainSpanNeuronIII");
-```
 
 ```{r message=FALSE, eval=FALSE}
-#Our NPC data
+#Our neuron data 
+ruvNormDataNeuron <- read_delim("D:/estagio/WGCNA_analysis/data_comparison/countData_RUV_Normalized_Neuron_nDEGs_HKgenes_p0.4_k4.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
 
-ruvNormDataNPC <- read_delim("D:/estagio/WGCNA_analysis/data_comparison/NPC/countData_RUV_Normalized_NPC_nDEGs_HKgenes_p0.3_k2.txt", 
-    " ", escape_double = FALSE, trim_ws = TRUE)
 
-KMENPC <- read_csv("D:/estagio/WGCNA_analysis/data_comparison/NPC/kME_NPC_nDEGs_HKgene_p0.3_k2.csv")
+KMENeuron <- read_excel("D:/estagio/WGCNA_analysis/data_comparison/kME_counts_Neurons_p0.4_k4_keep0.0125_power16_minsize150_cut0.15.xlsx")
 
-KMENPC <- KMENPC[,2:4]
-colnames(KMENPC) <- c("Ensembl", "moduleColor", "moduleLabel")
-ourDataNPC <- merge(KMENPC, ruvNormDataNPC, by = ("Ensembl"))
+KMENeuron <- select(KMENeuron, Symbol : moduleLabel)
+colnames(KMENeuron) <- c("Gene","GeneName", "moduleColor", "moduleLabel")
+ourDataNeuron <- merge(KMENeuron, ruvNormDataNeuron, by = ("Gene"))
 
 ```
 
-```{r}
-#Reading NPC data
-dat0 = ourDataNPC
+#Reading neuron data
+```{r message=FALSE, eval=FALSE}
+dat0 = ourDataNeuron
 names(dat0)
 # this contains information on the genes
-datSummaryNPC=dat0[,c(1:3)]
+datSummaryNeuron=dat0[,c(1:4)]
 # the following data frame contains
 # the gene expression data: columns are genes, rows are arrays (samples)
-datExprNPC <- t(dat0[,4:32])
-no.samples <- dim(datExprNPC)[[1]]
-dim(datExprNPC)
+datExprNeuron <- t(dat0[,5:22])
+no.samples <- dim(datExprNeuron)[[1]]
+dim(datExprNeuron)
 # Set the columns names to probe names
-colnames(datExprNPC) = datSummaryNPC$Ensembl
+colnames(datExprNeuron) = datSummaryNeuron$GeneName
 # This module assignment was obtained by Ghazalpour et al
-colorsNPC = dat0$moduleColor
+colorsNeuron = dat0$moduleColor
+```
+
+#Getting Voi's data
+```{r message=FALSE, eval=FALSE}
+
+voineagu <- read_delim("D:/estagio/WGCNA_analysis/data_comparison/combined_network_KME_voineagu2.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+voineagu2 <- select(voineagu, kMEblack: kMEyellow)
+colnames(voineagu2)[apply(voineagu2,1,which.max)]
+z <- colnames(voineagu2)[max.col(voineagu2,ties.method="first")] #faster than apply
+voineagu3 <- data.frame(voineagu2, originalColumn=z)
+voi_data <- cbind(voineagu[1:2], voineagu3)
+colnames(voi_data)[1]<- "ID_ref"
+colnames(voi_data)[2] <- "gene_symbol" 
+voi_data = voi_data %>% select(ID_ref, gene_symbol, originalColumn)
+
+#Reading all .txt files containing Irina's expression data
+
+larquivos<-list.files("D:/estagio/WGCNA_analysis/data_comparison/irinasExprData",full.names=TRUE)
+arquivos <- lapply(larquivos, function(x) fread(file = x))
+
+arquivos <- lapply(larquivos, function(x) {
+  df <- read.delim(file = x,header = T)
+  return(df)
+})
+
+dfarquivos = data.frame(arquivos)
+dfData <- dfarquivos %>% select(ID_ref, starts_with("VALUE")) 
+voiData = merge(voi_data, dfData, by = ("ID_ref"))
+
+#Getting Ensembl ID for Irina's data NÃO TEM ENSEMBL NESSE ARQUIVO
+
+#plataform = read_delim("D:/estagio/WGCNA_analysis/data_comparison/GPL6883-11606_illumina_plataform.txt", 
+#    "\t", escape_double = FALSE, trim_ws = TRUE)
+#plataform = select(plataform, Symbol, ID, Entrez_Gene_ID, RefSeq_ID)
+#colnames(voiData)[1]<- "ID"
+#voiDataFinal = merge(voiData, plataform, by = c("ID")) %>% select(Entrez_Gene_ID,RefSeq_ID, starts_with("VALUE"))
 
 ```
 
-```{r}
-multiExpr = list(NPC = list(data = datExprNPC), brainSpanNeuronIII = list(data = datExprBrainSpanNeuronIII));
-multiColor = list(NPC = colorsNPC);
+# Reading Voi Data
+```{r message=FALSE, eval=FALSE}
+
+dataVoi = voiData
+#symbol = select(voiData, gene_symbol)
+datExprVoi = t(dataVoi[,4:61]);
+colnames(datExprVoi) = dataVoi$gene_symbol
+
+setLabels = c("Neuron", "Voi");
+multiExpr = list(Neuron = list(data = datExprNeuron), Voi = list(data = datExprVoi));
+multiColor = list(Neuron = colorsNeuron);
 ```
 
+##Running WGCNA module preservation analysis
 ```{r message=FALSE, eval=FALSE}
 
 system.time( {
-mp = WGCNA::modulePreservation(multiExpr, multiColor,
+mp = modulePreservation(multiExpr, multiColor,
 referenceNetworks = 1,
 nPermutations = 200,
 randomSeed = 1,
@@ -108,8 +125,12 @@ verbose = 3)
 } );
 
 # Save the results
-save(mp, file = "modulePreservationBrainSpanNeuronIII_NPC.RData");
+save(mp, file = "modulePreservationNeuronVoineagu.RData");
+
+#Alternatively, if the data has already been calculated before, load them from disk:
+#load(file="modulePreservationNeuronNPC.RData")
 ```
+
 #Analysis and display of module preservation results
 ```{r message=FALSE, eval=FALSE}
 
@@ -138,7 +159,7 @@ plotData = cbind(mp$preservation$observed[[ref]][[test]][, 2], mp$preservation$Z
 mains = c("Preservation Median rank", "Preservation Zsummary");
 # Start the plot
 sizeGrWindow(10, 5);
-pdf(file ="NPCsVsBrainSpanNeuronsIII-Zsummary-medianRank.pdf", wi=10, h=5)
+pdf(file ="NeuronsvsIrinaModulePreservation-Zsummary-medianRank.pdf", wi=10, h=5)
 par(mfrow = c(1,2))
 par(mar = c(4.5,4.5,2.5,1))
 for (p in 1:2)
@@ -204,3 +225,4 @@ abline(h=10, col = "darkgreen", lty = 2)
 
 data.frame(color = modColors[plotMods], label = labs)
 ```
+

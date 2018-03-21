@@ -133,6 +133,7 @@ verbose = 3)
 
 # Save the results
 save(mp, file = "modulePreservationBrainSpanNeuronI.RData");
+load(file="modulePreservationBrainSpanNeuronIII.RData")
 ```
 
 #Analysis and display of module preservation results
@@ -144,7 +145,7 @@ statsObs = cbind(mp$quality$observed[[ref]][[test]][, -1], mp$preservation$obser
 statsZ = cbind(mp$quality$Z[[ref]][[test]][, -1], mp$preservation$Z[[ref]][[test]][, -1]);
 
 # Compare preservation to quality:
-print( cbind(statsObs[, c("medianRank.pres", "medianRank.qual")],
+ZscoreTable= print( cbind(statsObs[, c("medianRank.pres", "medianRank.qual")],
 signif(statsZ[, c("Zsummary.pres", "Zsummary.qual")], 2)) )
 ```
 
