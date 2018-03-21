@@ -35,9 +35,8 @@ HKgenes_full <- read.csv ("HK_full_gene_list_ensembl_biomart.csv")
 counts=read.table("countdata_20M_NPC.txt", header=TRUE)
 sampleInfo=read.delim("samplesheet_NPC.txt", sep="\t", header=TRUE)
 
-#batch1 - Removing samples with >55%###
-#our final analysis was made with samples only from batch 1 and removing samples
-#with more than 55% of neuron proportion
+#removing samples with >55%
+#samples with neuronal cell proportion > 55% are removed
 countData <- counts [,c(1:10,12:14,22:37)]
 sampleData <- sampleInfo [c(1:10,12:14,22:37),]
 geneRPKM2 <- geneRPKM [,c(1:10,12:14,22:37)]
@@ -86,7 +85,7 @@ write.csv( as.data.frame(res), file="deseq_notCol_NPC_nDEGs_HKgenes_p0.7_k2.csv"
 #you can check in the "cooks distance" table, which is the outlier sample
 outliers <- assays (ddsdeseq)[["cooks"]]
 write.csv( as.data.frame(outliers), file="outliers_notCol_NPC_nDEGs_HKgenes_p0.7_k2.csv" )
-#To extract the mean normalized counts
+#to extract the mean normalized counts
 mnc <- assays(ddsdeseq)[["mu"]]
 write.csv( as.data.frame(mnc), file="meannormalizedcounts_notCol_NPC_nDEGs_HKgenes_p0.7_k2.csv" )
 
@@ -108,8 +107,8 @@ write.csv(logtrans, file="logtransfcounts_notCol_NPC_nDEGs_HKgenes_p0.7_k2.csv" 
 #check for variance over the mean and possibliy remove some genes
 variance <- apply(ncvsd,1,sd)/apply(ncvsd,1,mean)
 hist(variance)
-
-keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.015)#I calculate the variance over the mean and tried different cuttoffs to see how many genes were still retained
+#I calculate the variance over the mean and tried different cuttoffs to see how many genes were still retained
+keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.015)
 ncvsd=ncvsd[keep,]
 
 #transpose the table
