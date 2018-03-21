@@ -7,7 +7,7 @@ getwd();
 workingDir = ".";
 setwd(workingDir);
 
-#load required packages ###
+###load required packages ###
 library(RUVSeq)
 library(EDASeq)
 library(WGCNA)
@@ -19,9 +19,9 @@ library(dplyr)
 library(biomaRt)
 library(multtest)
 library(gplots)
-#You might have to download additional packages depending on your currently R library
+#you might have to download additional packages depending on your currently R library
 
-# The following setting is important, do not omit
+#the following setting is important, do not omit
 options(stringsAsFactors = FALSE);
 
 #load input data
@@ -38,8 +38,8 @@ HKgenes_full <- read.csv ("HK_full_gene_list_ensembl_biomart.csv")
 counts=read.table("countdata_20M_neurons.txt", header=TRUE)
 sampleInfo=read.delim("samplesheet_neurons.txt", sep="\t", header=TRUE)
 
-#Removing samples with <50%###
-#Our final analysis was made with samples only  with more than 50% of neuron proportion
+#removing samples with <50%###
+#our final analysis was made with samples only  with more than 50% of neuron proportion
 countData50 <- counts [,c(1,2,5:7,9:15,17:23)]
 sampleData50 <- sampleInfo [c(1,2,5:7,9:15,17:23),]
 geneRPKM50 <- geneRPKM [,c(1,2,5:7,9:15,17:23)]
@@ -111,9 +111,8 @@ write.csv(logtrans, file="logtransfcounts_notCol_Neuron_nDEGs_HKgenes_p0.4_k4.cs
 #check for variance over the mean and possibliy remove some genes
 variance <- apply(ncvsd,1,sd)/apply(ncvsd,1,mean)
 hist(variance)
-
-keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.0125)
 #we calculated the variance over the mean and tried different cuttoffs to see how many genes were still retained
+keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.0125)
 ncvsd=ncvsd[keep,]
 
 #transpose the table
@@ -130,25 +129,26 @@ sizeGrWindow(9, 5)
 par(mfrow = c(1,2))
 cex1 = 0.9
 
-#fit to scale-free topology
-plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
-     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
-text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
-abline(h=c(0.8, 0.5), col="red")
-
-#mean connectivity
-plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
-     ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
-text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
 pdf(file="WGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
+
+ #fit to scale-free topology
+ plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
+      ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
+ text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
+ abline(h=c(0.8, 0.5), col="red")
+
+ #mean connectivity
+ plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
+      ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
+ text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
+
 dev.off()
 
 #construction of the network
-# Chosen soft threshold in this case is 16; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
+#chosen soft threshold in this case is 16; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
 net=blockwiseModules(dat, power=16, numericLabels=TRUE, networkType = "signed",
                      minModuleSize=150, mergeCutHeight=0.15, saveTOMs=FALSE, verbose=6,minKMEtoStay = 0.5,
                      nThreads=24, maxBlockSize=20000, checkMissingData=FALSE)
-
 
 #labelling the modules with a colour tag
 modules=as.data.frame(table(net$colors)); colnames(modules)=c("Label", "N")
@@ -167,15 +167,13 @@ colnames(kme)[1]="Symbol"
 kmeInfoCols=c(1:3)
 kmedata=kme[,-kmeInfoCols];
 pvalBH=kmedata; pvalBH[,]=NA
-for (j in c(1:ncol(pvalBH)))
-{
+for (j in c(1:ncol(pvalBH))){
   p=mt.rawp2adjp(corPvalueStudent(kmedata[,j], nSamples=19), proc="BH")
   pvalBH[,j]=p$adjp[order(p$index),2]
 }
 
 kme$newModule="NA"
-for (j in c(1:nrow(kmedata)) )
-{
+for (j in c(1:nrow(kmedata)) ){
   if (j==1) print("Working on genes 1:10000"); if(j==10000) print(paste("Working on genes 10000:", nrow(kmedata)))
   m=which(kmedata[j,]==max(kmedata[j,]))
   if ((pvalBH[j,m]<0.05)&(kmedata[j,m]>0.5)) kme$newModule[j]=as.character(colnames(kmedata)[m])
@@ -192,8 +190,7 @@ kme=kme[,-grep("newModule", colnames(kme))];kme=kme[,-grep("newColor", colnames(
 #saving kMEs
 mod=modules$Label[-1]
 kmeTable=kme[,kmeInfoCols];
-for(j in c(1:length(mod)))
-{
+for(j in c(1:length(mod))){
   kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")
   kmeTable=cbind(kmeTable, pvalBH[,match(mod[j],colnames(pvalBH))]);colnames(kmeTable)[ncol(kmeTable)]=paste("pvalBH", mod[j], sep="_")
 }
@@ -213,8 +210,7 @@ colors[grep("_P_", me$Sample)]="red"
 pdf("moduleBarplots_Neuron_nDEGs_HKgenes_p0.4_k4.pdf", height=5, width=15)
 
 mod=paste("M", c(0:(ncol(me)-2)), sep="")
-for(m in mod)
-{
+for(m in mod){
   j=match(m, colnames(me))
   col=kme$moduleColor[match(m, kme$moduleLabel)]
   barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
@@ -235,30 +231,31 @@ MEs = orderMEs(MEs0)
 moduleTraitCor = cor(MEs, SampleInfo, use = "p");
 moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
 sizeGrWindow(10,6)
+
 pdf("Module-TRait_relationship_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
 
-#will display correlations and their p-values
-textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
-                   signif(moduleTraitPvalue, 2), ")", sep = "");
-dim(textMatrix) = dim(moduleTraitCor)
-par(mar = c(6, 8.5, 3, 3));
+ #will display correlations and their p-values
+ textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
+                    signif(moduleTraitPvalue, 2), ")", sep = "");
+ dim(textMatrix) = dim(moduleTraitCor)
+ par(mar = c(6, 8.5, 3, 3));
 
-#display the correlation values within a heatmap plot
-labeledHeatmap(Matrix = moduleTraitCor,
-               xLabels = names(SampleInfo),
-               yLabels = names(MEs),
-               ySymbols = names(MEs),
-               colorLabels = FALSE,
-               colors = greenWhiteRed(50),
-               textMatrix = textMatrix,
-               setStdMargins = FALSE,
-               cex.text = 0.5,
-               zlim = c(-1,1),
-               main = paste("Module-trait relationships"))
+ #display the correlation values within a heatmap plot
+ labeledHeatmap(Matrix = moduleTraitCor,
+                xLabels = names(SampleInfo),
+                yLabels = names(MEs),
+                ySymbols = names(MEs),
+                colorLabels = FALSE,
+                colors = greenWhiteRed(50),
+                textMatrix = textMatrix,
+                setStdMargins = FALSE,
+                cex.text = 0.5,
+                zlim = c(-1,1),
+                main = paste("Module-trait relationships"))
 dev.off()
 
 
-####overlapping of modules with external data####
+#overlapping of modules with external data
 #converting ensembl id to gene symbol
 ensembl <- rownames (ncvsd)
 geneR <-if (interactive()) {

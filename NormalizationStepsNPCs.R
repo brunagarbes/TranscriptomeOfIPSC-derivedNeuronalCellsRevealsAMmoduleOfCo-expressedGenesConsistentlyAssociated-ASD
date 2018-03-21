@@ -21,9 +21,9 @@ library (RColorBrewer)
 options(stringsAsFactors = FALSE);
 
 #loading input data
-geneRPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
-rownames(geneRPKM)=geneRPKM[,1]
-geneRPKM=geneRPKM[,-1]
+geneFPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
+rownames(geneFPKM)=geneFPKM[,1]
+geneFPKM=geneFPKM[,-1]
 
 counts=read.table("countdata_20M_NPC.txt", header=TRUE)
 sampleInfo=read.delim("samplesheet_NPC.txt", sep="\t", header=TRUE)
@@ -34,11 +34,11 @@ HKgenes_full <- read.csv ("HK_full_gene_list_ensembl_biomart.csv")
 countData <- counts [,c(1:10,12:14,22:37)]
 sampleData <- sampleInfo [c(1:10,12:14,22:37),]
 sampleData <- sampleData[,c(1:2,4,9:10)]
-geneRPKM2 <- geneRPKM [,c(1:10,12:14,22:37)]
+geneFPKM2 <- geneFPKM [,c(1:10,12:14,22:37)]
 
-filtered <- which(rowSums(geneRPKM2 > 1) >= 15)
-RPKM <- geneRPKM2[filtered,]
-countData=subset (countData, rownames(countData) %in% rownames(RPKM))
+filtered <- which(rowSums(geneFPKM2 > 1) >= 15)
+FPKM <- geneFPKM2[filtered,]
+countData=subset (countData, rownames(countData) %in% rownames(FPKM))
 
 #find the intersect between countData and HKgenes
 HKgenes <- intersect(HKgenes_full$Ensembl_biomart, rownames(countData))
@@ -57,6 +57,8 @@ res <- results(ddsdeseq)
 summary(res)
 res <- as.data.frame(res)
 nDEGs_deseq <- subset (res, res$padj>=0.7)
+
+#list of housekeeping genes used for the RUVseq normalization analysis
 nDEGs_deseq <- rownames(nDEGs_deseq)
 nDEGs_HKgenes <- intersect(nDEGs_deseq,HKgenes)
 controlGenes <- nDEGs_HKgenes
@@ -159,19 +161,6 @@ pdf(file="BeforeNormalizationWGCNA_SoftThreshold_NPCs_nDEGs_HKgenes_p0_7.pdf")
  text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
 dev.off()
 
-#fit to scale-free topology
-plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
-     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
-text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
-abline(h=c(0.8, 0.5), col="red")
-
-#mean connectivity
-plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
-     ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
-text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
-
-dev.off()
-
 #construction of the network
 #chosen soft threshold in this case is 12; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
 net=blockwiseModules(dat, power=10, numericLabels=TRUE, networkType = "signed",
@@ -195,15 +184,13 @@ colnames(kme)[1]="Symbol"
 kmeInfoCols=c(1:3)
 kmedata=kme[,-kmeInfoCols];
 pvalBH=kmedata; pvalBH[,]=NA
-for (j in c(1:ncol(pvalBH)))
-{
+for (j in c(1:ncol(pvalBH))){
   p=mt.rawp2adjp(corPvalueStudent(kmedata[,j], nSamples=29), proc="BH")
   pvalBH[,j]=p$adjp[order(p$index),2]
 }
 
 kme$newModule="NA"
-for (j in c(1:nrow(kmedata)) )
-{
+for (j in c(1:nrow(kmedata)) ){
   if (j==1) print("Working on genes 1:10000"); if(j==10000) print(paste("Working on genes 10000:", nrow(kmedata)))
   m=which(kmedata[j,]==max(kmedata[j,]))
   if ((pvalBH[j,m]<0.05)&(kmedata[j,m]>0.5)) kme$newModule[j]=as.character(colnames(kmedata)[m])
@@ -220,8 +207,7 @@ kme=kme[,-grep("newModule", colnames(kme))];kme=kme[,-grep("newColor", colnames(
 #saving kMEs
 mod=modules$Label[-1]
 kmeTable=kme[,kmeInfoCols];
-for(j in c(1:length(mod)))
-{
+for(j in c(1:length(mod))){
   kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")
   kmeTable=cbind(kmeTable, pvalBH[,match(mod[j],colnames(pvalBH))]);colnames(kmeTable)[ncol(kmeTable)]=paste("pvalBH", mod[j], sep="_")
 }
@@ -238,15 +224,15 @@ write.csv(me, "BeforeNormalization_ME_NPC_nDEGs_HKgene_p0.7.csv", row.names=FALS
 #plotting module eigengene values
 colors=rep("turquoise", nrow(me) )
 colors[grep("_P_", me$Sample)]="red"
+
 pdf("BeforeNormalization_moduleBarplots_NPC_nDEGs_HKgene_p0.7.pdf", height=5, width=15)
 
-mod=paste("M", c(0:(ncol(me)-2)), sep="")
-for(m in mod)
-{
-  j=match(m, colnames(me))
-  col=kme$moduleColor[match(m, kme$moduleLabel)]
-  barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
-}
+ mod=paste("M", c(0:(ncol(me)-2)), sep="")
+ for(m in mod){
+   j=match(m, colnames(me))
+   col=kme$moduleColor[match(m, kme$moduleLabel)]
+   barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
+ }
 dev.off()
 
 #get biological variables correlations
@@ -263,6 +249,7 @@ MEs = orderMEs(MEs0)
 moduleTraitCor = cor(MEs, SampleInfo, use = "p");
 moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
 sizeGrWindow(10,6)
+
 pdf("BeforeNormalization_Module-TRait_NPC_nDEG_HKgenes_p0.7.pdf")
 
  #will display correlations and their p-values
@@ -285,7 +272,7 @@ pdf("BeforeNormalization_Module-TRait_NPC_nDEG_HKgenes_p0.7.pdf")
                 main = paste("BeforeNormalization_Module-trait relationships"))
  dev.off()
 
-#once we have generated PCA and cluster hierarchical graphs considering K=1,..., K=4 in the RUVSeq we were able to choose the best K value which would remove the observed batch effect related to neuronal cell proportions in our samples 
+#once we have generated PCA and cluster hierarchical graphs considering K=1,..., K=4 in the RUVSeq and after having a look at the WGCNA results prior to normalization we were able to choose the best K value which would remove the observed batch effect related to neuronal cell proportions in our samples 
 
 RUV2 <- RUVg(as.matrix(countData), controlGenes, k=2)
 N2 <- RUV2$normalizedCounts

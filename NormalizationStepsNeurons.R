@@ -1,14 +1,13 @@
-
 ###NormalizationStepsNeurons###
 
-# Display the current working directory
+#display the current working directory
 getwd();
-# If necessary, change the path below to the directory where the data files are stored.
+#if necessary, change the path below to the directory where the data files are stored.
 # "." means current directory. On Windows use a forward slash / instead of the usual \.
 workingDir = ".";
 setwd(workingDir);
 
-# Load required packages
+#load required packages
 library(RUVSeq)
 library(EDASeq)
 library(WGCNA)
@@ -16,13 +15,12 @@ library(calibrate)
 library(DESeq2)
 library(pheatmap)
 library (RColorBrewer)
-#You might have to download additional packages depending on your currently R library
+#you might have to download additional packages depending on your currently R library
 
-# The following setting is important, do not omit.
+#the following setting is important, do not omit.
 options(stringsAsFactors = FALSE);
 
 #loading input data
-
 geneFPKM=read.delim ("allData_FPKM_renormalized_IV.txt", sep= "\t", header=TRUE)
 rownames(geneFPKM)=geneFPKM[,1]
 geneFPKM=geneFPKM[,c(41:63)]
@@ -50,28 +48,28 @@ FPKM <- geneFPKM50[filtered,]
 countData50 =subset (countData50, rownames(countData50) %in% rownames(FPKM))
 
 #first differential expression analysis with DESeq2
-#we generated a gene list which is known to be no differentially expressed (pvalue>=0.4)
-#so we can built up a housekeeping gene list for RUVseq analysis
-
+#we generated a gene list which is known to be no differentially expressed (pvalue>=0.4) so we can built up a housekeeping gene list for RUVseq analysis
 dds <- DESeqDataSetFromMatrix(countData = countData50, colData = sampleData50, design = ~ condition)
 
 #set which group is the reference group
 dds$condition <- relevel(dds$condition, ref="C")
 ddsdeseq <- DESeq(dds)
 res <- results(ddsdeseq)
+
 #you can check the number of outliers and lowcount genes using the function summary
 summary(res)
 res <- as.data.frame(res)
 nDEGs_deseq50 <- subset (res, res$pvalue>=0.4)
-nDEGs_deseq50 <- rownames(nDEGs_deseq50)
 
 #list of housekeeping genes used for the RUVseq normalization analysis
+nDEGs_deseq50 <- rownames(nDEGs_deseq50)
 HKgenes50 <- intersect(HKgenes_full$Ensembl_biomart, rownames(countData50))
 nDEGs_HKgenes50 <- intersect(nDEGs_deseq50,HKgenes50)
+controlGenes <- nDEGs_HKgenes50
 m=match(colnames(countData50), sampleData50$label)
 
 
-#RUVSeq
+###RUVSeq###
 
 #before normalization
 #PCA and hierarchical cluster graphs before normalization
@@ -95,31 +93,32 @@ pheatmap(sampleDistMatrix,
 dev.off()
 
 
-controlGenes <- nDEGs_HKgenes50
 pdf("contrGenes_nDEGs_HKgenes_neurons50.pdf")
 
-for( i in 1:4){
+#testing different K values which is related to the number of factors of unwanted variation
 
- RUV <- RUVg(as.matrix(countData50), controlGenes, k=i)
- N <- RUV$normalizedCounts
+ for( i in 1:4){
 
- boxplot(log2(N))
- title("Boxplot Neuron Samples, 1<= K <=4")
- pca=princomp(cor(N, method="s"))
- plot(pca$loadings[,1], pca$loadings[,2],xlab="PC1", ylab="PC2", main="RUV Normalization PCA graphs considering neuron proportions", pch=20, col=labels2colors(sampleData50$Neur_prop_group[m]))
- dds <- DESeqDataSetFromMatrix(countData = N, colData = sampleData50, design = ~ condition)
- vsd <- varianceStabilizingTransformation(dds)
- plotPCA(vsd, intgroup=c("Neur_prop_group"))
- sampleDists <- dist(t(assay(vsd)))
- sampleDistMatrix <- as.matrix(sampleDists)
- rownames(sampleDistMatrix) <- paste(colnames(countData50))
- colnames(sampleDistMatrix) <- NULL
- colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
- pheatmap(sampleDistMatrix,
-         clustering_distance_rows=sampleDists,
-         clustering_distance_cols=sampleDists,
-         col=colors)
-}
+  RUV <- RUVg(as.matrix(countData50), controlGenes, k=i)
+  N <- RUV$normalizedCounts
+
+  boxplot(log2(N))
+  title("Boxplot Neuron Samples, 1<= K <=4")
+  pca=princomp(cor(N, method="s"))
+  plot(pca$loadings[,1], pca$loadings[,2],xlab="PC1", ylab="PC2", main="RUV Normalization PCA graphs considering neuron proportions", pch=20, col=labels2colors(sampleData50$Neur_prop_group[m]))
+  dds <- DESeqDataSetFromMatrix(countData = N, colData = sampleData50, design = ~ condition)
+  vsd <- varianceStabilizingTransformation(dds)
+  plotPCA(vsd, intgroup=c("Neur_prop_group"))
+  sampleDists <- dist(t(assay(vsd)))
+  sampleDistMatrix <- as.matrix(sampleDists)
+  rownames(sampleDistMatrix) <- paste(colnames(countData50))
+  colnames(sampleDistMatrix) <- NULL
+  colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+  pheatmap(sampleDistMatrix,
+          clustering_distance_rows=sampleDists,
+          clustering_distance_cols=sampleDists,
+          col=colors)
+ }
 dev.off()
 
 
@@ -137,8 +136,8 @@ ncvsd <- as.data.frame(ncvsd)
 variance <- apply(ncvsd,1,sd)/apply(ncvsd,1,mean)
 hist(variance)
 
-keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.03)
 #we calculated the variance over the mean and tried different cuttoffs to see how many genes were still retained
+keep=which(apply(ncvsd,1,sd)/apply(ncvsd,1,mean)>= 0.03)
 ncvsd=ncvsd[keep,]
 
 #transpose the table
@@ -155,15 +154,143 @@ sizeGrWindow(9, 5)
 par(mfrow = c(1,2))
 cex1 = 0.9
 
-pdf(file="WGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0.4_k4.pdf")
-#fit to scale-free topology
-plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
-     ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
-text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
-abline(h=c(0.8, 0.5), col="red")
+pdf(file="BeforeNormalizationWGCNA_SoftThreshold_Neuron_nDEGs_HKgenes_p0_4.pdf")
+ #fit to scale-free topology
+ plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], xlab = "Soft Threshold (power)",
+      ylab = "Scale Free Topology Model Fit, signed R^2", type="n", main = paste("Scale independence"));
+ text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], labels = powers, cex = cex1, col="red");
+ abline(h=c(0.8, 0.5), col="red")
 
-#mean connectivity
-plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
-     ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
-text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
+ #mean connectivity
+ plot(sft$fitIndices[,1], sft$fitIndices[,5], xlab = "Soft threshold (power)",
+      ylab = "Mean Connectivity", type = "n", main = paste("Mean Connectivity"))
+ text(sft$fitIndices[,1], sft$fitIndices[,5], labels = powers, cex = cex1, col="red")
 dev.off()
+
+#construction of the network
+#chosen soft threshold in this case is 12; it sets the fit to Scale-free Topology > 0.8 while retaining as much connectivity as possible
+net=blockwiseModules(dat, power=16, numericLabels=TRUE, networkType = "signed", 
+                     minModuleSize=100, mergeCutHeight=0.25, saveTOMs=FALSE, verbose=6,minKMEtoStay = 0.5, 
+                     nThreads=24, maxBlockSize=20000, checkMissingData=FALSE)
+
+
+#labelling the modules with a colour tag
+modules=as.data.frame(table(net$colors)); colnames(modules)=c("Label", "N") 
+modules$Label=paste("M", modules$Label, sep=""); 
+modules$Color=c("grey",labels2colors(modules$Label[-1])) 
+moduleLabel=paste("M",net$colors, sep=""); 
+moduleColor=modules$Color[match(moduleLabel, modules$Label)] 
+
+#dendogram modules
+sizeGrWindow(12, 9)
+# Convert labels to colors for plotting
+mergedColors = labels2colors(net$colors)
+#plot the dendrogram and the module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+
+#get kMe table
+#calculating kMEs
+KMEs<-signedKME(dat, net$MEs,outputColumnName = "M") # signedKME calculates eigengene-based connectivity i.e. module membership. Also, outputColumnName gives us a prefix. Also, the corFnc defaults to Pearson
+kme=data.frame(infoData [match(colnames(dat), infoData)], moduleColor,moduleLabel, KMEs)
+colnames(kme)[1]="Symbol"
+
+#re-assign genes to modules by kME. Any not passing the criteria of correlation pvalue <0.05, and kME>0.5, will be moved to a junk module
+kmeInfoCols=c(1:3)
+kmedata=kme[,-kmeInfoCols]; 
+pvalBH=kmedata; pvalBH[,]=NA 
+for (j in c(1:ncol(pvalBH))){
+ p=mt.rawp2adjp(corPvalueStudent(kmedata[,j], nSamples=19), proc="BH")
+ pvalBH[,j]=p$adjp[order(p$index),2]
+}
+
+kme$newModule="NA" 
+for (j in c(1:nrow(kmedata)) ){
+ if (j==1) print("Working on genes 1:10000"); if(j==10000) print(paste("Working on genes 10000:", nrow(kmedata)))
+ m=which(kmedata[j,]==max(kmedata[j,]))
+ if ((pvalBH[j,m]<0.05)&(kmedata[j,m]>0.5)) kme$newModule[j]=as.character(colnames(kmedata)[m])
+}
+
+#assign genes not associated to any module to M0
+kme$newModule[which(kme$newModule%in%"NA")]="M0" 
+
+#replacing the old moduleLabel and moduleColor columns with the updated newModule and newColor columns respectively
+kme$newColor=kme$moduleColor[match(kme$newModule, kme$moduleLabel)] 
+kme$moduleLabel=kme$newModule; kme$moduleColor=kme$newColor 
+kme=kme[,-grep("newModule", colnames(kme))];kme=kme[,-grep("newColor", colnames(kme))] 
+
+#Saving kMEs 
+mod=modules$Label[-1] 
+kmeTable=kme[,kmeInfoCols]; 
+for(j in c(1:length(mod))){
+   kmeTable=cbind(kmeTable, kmedata[,match(mod[j],colnames(kmedata))]);colnames(kmeTable)[ncol(kmeTable)]=paste("kME", mod[j], sep="_")                                                                             
+   kmeTable=cbind(kmeTable, pvalBH[,match(mod[j],colnames(pvalBH))]);colnames(kmeTable)[ncol(kmeTable)]=paste("pvalBH", mod[j], sep="_")
+ }
+#renaming the rBEE rows, which are now NA    
+write.csv(kmeTable, "BeforeNormalizationkME_counts_Neurons_p0_4.csv", row.names=FALSE)
+
+#saving Module Eigengenes 
+me<-data.frame(rownames(dat), net$MEs) # Sample names bound to module eigengenes
+colnames(me)[-1]=gsub("ME", "M", colnames(me)[-1])
+colnames(me)[1]="Sample"
+write.csv(me, "BeforeNormalizationME_counts_Neurons_p0_4.csv", row.names=FALSE)
+
+#Plotting Module Eigengene Values
+colors=rep("turquoise", nrow(me) )
+colors[grep("_P_", me$Sample)]="red"
+
+pdf("moduleBarplots_counts_Neurons_p0_4.pdf", height=5, width=15)
+
+ mod=paste("M", c(0:(ncol(me)-2)), sep="")
+  for(m in mod) { 
+    j=match(m, colnames(me))
+    col=kme$moduleColor[match(m, kme$moduleLabel)]
+    barplot(me[,j],  xlab="Samples", ylab="ME",col=colors, main=m, names=me[,1], cex.names=0.5, axisnames = FALSE)
+  }
+dev.off()
+
+#get biological variables correlations
+#define numbers of genes and samples
+Samples = rownames(dat);
+traitRows = match(Samples, sampleData$label);
+SampleInfo = sampleData[traitRows, -1];
+rownames(SampleInfo) = sampleData[traitRows, 1];
+nGenes = ncol(dat);
+nSamples = nrow(dat);
+#recalculate MEs with color labels
+MEs0 = moduleEigengenes(dat, moduleColor)$eigengenes
+MEs = orderMEs(MEs0)
+moduleTraitCor = cor(MEs, SampleInfo, use = "p");
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
+sizeGrWindow(10,6)
+
+pdf("BeforeNormalizationModule-TRait_relationship_neurons_p0_4.pdf")
+
+ #will display correlations and their p-values
+ textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
+                    signif(moduleTraitPvalue, 2), ")", sep = "");
+ dim(textMatrix) = dim(moduleTraitCor)
+ par(mar = c(6, 8.5, 3, 3));
+ #display the correlation values within a heatmap plot
+ labeledHeatmap(Matrix = moduleTraitCor,
+                xLabels = names(SampleInfo),
+                yLabels = names(MEs),
+                ySymbols = names(MEs),
+                colorLabels = FALSE,
+                colors = greenWhiteRed(50),
+                textMatrix = textMatrix,
+                setStdMargins = FALSE,
+                cex.text = 0.5,
+                zlim = c(-1,1),
+                main = paste("BeforeNormalizationModule-trait relationships"))
+ dev.off()
+ 
+ #once we have generated PCA and cluster hierarchical graphs considering K=1,..., K=4 in the RUVSeq and after having a look at the WGCNA results prior to normalization we were able to choose the best K value which would remove the observed batch effect related to neuronal cell proportions in our samples 
+ 
+ RUV4 <- RUVg(as.matrix(countData50), controlGenes, k=4)
+ N4 <- RUV4$normalizedCounts
+ write.table (N4, file="countData_RUV_Normalized_Neuron_nDEGs_HKgenes_p0.4_k4.txt")
+ 
+ #further steps after normalization are located at Final_script_Neuron_analysis.R 
