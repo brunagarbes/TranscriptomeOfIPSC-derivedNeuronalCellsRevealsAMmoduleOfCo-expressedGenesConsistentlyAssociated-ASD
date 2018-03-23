@@ -21,7 +21,7 @@ options(stringsAsFactors = FALSE);
 ```
 
 ```{r}
-brainSpanNeuron <- read_delim("D:/estagio/WGCNA_analysis/brainSpan/brainSpanData_Neuron_final.txt", 
+brainSpanNeuron <- read_delim("brainSpanData_Neuron_final.txt", 
     "\t", escape_double = FALSE, trim_ws = TRUE);
 ```
 
@@ -47,10 +47,8 @@ brainSpanNeuronIII <- read_csv("brainSpanNeuronIII.txt")
 keep=as.data.frame(brainSpanNeuronIII)
 rownames(keep)=keep[,1]
 keep=keep[2:68]
-keep2=which(apply(keep,1,sd)/apply(keep,1,mean)>= 0.2) #lembrar que pra brainSpanNeuronI usei 0.3!
+keep2=which(apply(keep,1,sd)/apply(keep,1,mean)>= 0.2)
 keep=keep[keep2,]
-#hist(keep)
-#keep3= mutate(keep, X1=rownames(keep))
 brainSpanNeuronIII=keep
 
 #Reading brainSpanNeuronI data
@@ -62,10 +60,10 @@ setLabels = c("Neuron", "brainSpanNeuronIII");
 ```{r message=FALSE, eval=FALSE}
 #Our NPC data
 
-ruvNormDataNPC <- read_delim("D:/estagio/WGCNA_analysis/data_comparison/NPC/countData_RUV_Normalized_NPC_nDEGs_HKgenes_p0.3_k2.txt", 
+ruvNormDataNPC <- read_delim("countData_RUV_Normalized_NPC_nDEGs_HKgenes_p0.3_k2.txt", 
     " ", escape_double = FALSE, trim_ws = TRUE)
 
-KMENPC <- read_csv("D:/estagio/WGCNA_analysis/data_comparison/NPC/kME_NPC_nDEGs_HKgene_p0.3_k2.csv")
+KMENPC <- read_csv("kME_NPC_nDEGs_HKgene_p0.3_k2.csv")
 
 KMENPC <- KMENPC[,2:4]
 colnames(KMENPC) <- c("Ensembl", "moduleColor", "moduleLabel")
@@ -86,7 +84,6 @@ no.samples <- dim(datExprNPC)[[1]]
 dim(datExprNPC)
 # Set the columns names to probe names
 colnames(datExprNPC) = datSummaryNPC$Ensembl
-# This module assignment was obtained by Ghazalpour et al
 colorsNPC = dat0$moduleColor
 
 ```
@@ -110,6 +107,7 @@ verbose = 3)
 # Save the results
 save(mp, file = "modulePreservationBrainSpanNeuronIII_NPC.RData");
 ```
+
 #Analysis and display of module preservation results
 ```{r message=FALSE, eval=FALSE}
 
@@ -167,7 +165,7 @@ abline(h=2, col = "blue", lty = 2)
 abline(h=10, col = "darkgreen", lty = 2)
 }
 }
-# If plotting into a file, close it
+
 dev.off();
 ```
 
