@@ -1,0 +1,120 @@
+---
+title: "GSE31324_dermalPapillaAnalysis"
+author: "Bruna Garbes"
+date: "6 de abril de 2018"
+output: html_document
+---
+
+
+```{r}
+# Display the current working directory
+getwd();
+# If necessary, change the path below to the directory where the data files are stored.
+# "." means current directory. On Windows use a forward slash / instead of the usual \.
+workingDir = ".";
+setwd(workingDir);
+# Load the package
+library(WGCNA);
+library(plyr);
+library(dplyr);
+library(readr);
+library(magrittr);
+library(data.table);
+library(readxl);
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE);
+
+```
+
+```{r}
+GSE31324_series_matrix <- read_delim("D:/estagio/WGCNA_analysis/DermalPapillaAnalysis/GSE31324_series_matrix.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+GSE31324SeriesMatrix <- GSE31324_series_matrix[2:22217,]
+GSE31324SeriesMatrix <- select(GSE31324SeriesMatrix, -ends_with("67"), -ends_with("68"), -ends_with("69"),-ends_with("70"))
+
+GSE31324_ID_REF_to_Ensembl <- read_delim("C:/Users/WADSONGARBESGONCALVE/Desktop/dataInputs/DermalPapillaAnalysis/GSE31324_ID_REF_to_Ensembl.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)# ID convertion performed with Biomart
+colnames(GSE31324_ID_REF_to_Ensembl)= c("Ensembl", "GeneName", "ID_REF")
+```
+
+```{r}
+GSE31324Data <- merge(GSE31324SeriesMatrix, GSE31324_ID_REF_to_Ensembl, by = c("ID_REF"))
+GSE31324Data <- select(GSE31324Data, Ensembl, GeneName, starts_with("GSM"))
+
+ variance <- apply(GSE31324Data[3],1,sd)/apply(GSE31324Data[3],1,mean)
+hist(variance)
+keep=as.data.frame(GSE31324)
+rownames(keep)=keep[,1]
+keep=keep[3:14]
+keep2=which(apply(keep,1,sd)/apply(keep,1,mean)>= 0.3)
+keep=keep[keep2,]
+hist(keep)
+keep3= mutate(keep, ensembl_gene_id=rownames(keep))
+marchettoData=keep3
+```
+
+# Reading GSE31324Data
+```{r message=FALSE, eval=FALSE}
+
+data31324 = GSE31324Data
+#symbol = select(voiData, gene_symbol)
+datExpr31324 = t(data31324[,3:14]);
+colnames(datExpr31324) = data31324$GeneName
+
+setLabels = c("Neuron", "GSE31324");
+multiExpr = list(Neuron = list(data = datExprNeuron), GSE31324 = list(data = datExpr31324));
+multiColor = list(Neuron = colorsNeuron);
+```
+
+```{r message=FALSE, eval=FALSE}
+#Our neuron data 
+ruvNormDataNeuron <- read_delim("D:/estagio/WGCNA_analysis/data_comparison/countData_RUV_Normalized_Neuron_nDEGs_HKgenes_p0.4_k4.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+
+KMENeuron <- read_excel("D:/estagio/WGCNA_analysis/data_comparison/kME_counts_Neurons_p0.4_k4_keep0.0125_power16_minsize150_cut0.15.xlsx")
+
+KMENeuron <- select(KMENeuron, Symbol : moduleLabel)
+colnames(KMENeuron) <- c("Gene","GeneName", "moduleColor", "moduleLabel")
+ourDataNeuron <- merge(KMENeuron, ruvNormDataNeuron, by = ("Gene"))
+
+```
+
+#Reading neuron data
+```{r message=FALSE, eval=FALSE}
+dat0 = ourDataNeuron
+names(dat0)
+# this contains information on the genes
+datSummaryNeuron=dat0[,c(1:4)]
+# the following data frame contains
+# the gene expression data: columns are genes, rows are arrays (samples)
+datExprNeuron <- t(dat0[,5:22])
+no.samples <- dim(datExprNeuron)[[1]]
+dim(datExprNeuron)
+# Set the columns names to probe names
+colnames(datExprNeuron) = datSummaryNeuron$GeneName
+# This module assignment was obtained by Ghazalpour et al
+colorsNeuron = dat0$moduleColor
+```
+
+
+
+##Running WGCNA module preservation analysis
+```{r message=FALSE, eval=FALSE}
+
+system.time( {
+mp = modulePreservation(multiExpr, multiColor,
+referenceNetworks = 1,
+nPermutations = 200,
+randomSeed = 1,
+quickCor = 0,
+verbose = 3)
+} );
+
+# Save the results
+save(mp, file = "modulePreservationNeuronGSE31324.RData");
+
+#Alternatively, if the data has already been calculated before, load them from disk:
+#load(file="modulePreservationNeuronNPC.RData")
+```

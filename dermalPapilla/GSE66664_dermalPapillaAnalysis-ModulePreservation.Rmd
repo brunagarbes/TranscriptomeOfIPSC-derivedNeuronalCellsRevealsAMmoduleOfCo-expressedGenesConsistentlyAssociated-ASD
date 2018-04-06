@@ -1,0 +1,59 @@
+---
+title: "GSE66664_dermalPapillaAnalysis"
+author: "Bruna Garbes"
+date: "6 de abril de 2018"
+output: html_document
+---
+
+
+```{r}
+# Display the current working directory
+getwd();
+# If necessary, change the path below to the directory where the data files are stored.
+# "." means current directory. On Windows use a forward slash / instead of the usual \.
+workingDir = ".";
+setwd(workingDir);
+# Load the package
+library(WGCNA);
+library(plyr);
+library(dplyr);
+library(readr);
+library(magrittr);
+library(data.table);
+library(readxl);
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE);
+
+```
+
+```{r}
+GSE66664_series_matrix <- read_delim("D:/estagio/WGCNA_analysis/DermalPapillaAnalysis/GSE66664_series_matrix.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+GSE66664SeriesMatrix <- GSE66664_series_matrix[2:47290,]
+GSE66664SeriesMatrix <- select(GSE66664SeriesMatrix, ID_REF, num_range("GSM1627", 302:304), num_range("GSM1627",308:310), num_range("GSM1627",338:339), num_range("GSM1627",343:345),num_range("GSM1627",373:375),num_range("GSM1627",379:381),num_range("GSM1627",408:409),num_range("GSM1627",413:415))
+
+GSE66664ID_REF_to_Ensembl <- read_delim("C:/Users/WADSONGARBESGONCALVE/Desktop/dataInputs/DermalPapillaAnalysis/GSE66664ID_REF_to_Ensembl.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE) # ID convertion performed with Biomart
+colnames(GSE66664ID_REF_to_Ensembl)= c("Ensembl", "ID_REF", "GeneName")
+
+GSE66664Data <- merge(GSE66664SeriesMatrix, GSE66664ID_REF_to_Ensembl, by = c("ID_REF"))
+
+GSE66664Data <- select(GSE66664Data, Ensembl, GeneName, starts_with("GSM"))
+write.csv(GSE66664Data, "GSE66664Data.txt", row.names = F)
+GSE66664Data <- read_csv("GSE66664Data.txt")
+
+```
+
+```{r}
+variance <- apply(GSE66664Data[3:24],1,sd)/apply(GSE66664Data[3:24],1,mean)
+hist(variance)
+keep=as.data.frame(GSE66664Data)
+rownames(keep)=keep[,1]
+keep=keep[3:24]
+keep2=which(apply(keep,1,sd)/apply(keep,1,mean)>= 0.03)
+keep=keep[keep2,]
+hist(keep)
+keep3= mutate(keep, ensembl_gene_id=rownames(keep))
+GSE66664Data=keep3
+```
+
