@@ -1,7 +1,7 @@
 ###NormalizationStepsNPCs###
 
 #display the current working directory
-getwd();
+getwd(); # legal
 #if necessary, change the path below to the directory where the data files are stored.
 # "." means current directory. On Windows use a forward slash / instead of the usual \.
 workingDir = ".";
